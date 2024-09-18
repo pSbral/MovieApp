@@ -1,76 +1,93 @@
+// nowplaying_list.dart
 import 'package:flutter/material.dart';
 import 'package:movie_app/models/movie_model.dart';
+import 'package:movie_app/pages/movie_detail/movie_detail_page.dart';
 import 'package:movie_app/widgets/custom_card_thumbnail.dart';
 
 class NowPlayingList extends StatefulWidget {
   final Result result;
-  const NowPlayingList({super.key, required this.result});
+  const NowPlayingList({Key? key, required this.result}) : super(key: key);
 
   @override
   State<NowPlayingList> createState() => _NowPlayingListState();
 }
 
 class _NowPlayingListState extends State<NowPlayingList> {
-  final PageController _pageController = PageController(viewportFraction: 0.9);
+  int _currentIndex = 0;
+  late PageController _pageController;
 
-  int currentPage = 1;
-  final maxItems = 5;
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(
+      initialPage: 0,
+      viewportFraction: 0.8,
+    );
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final totalItems = widget.result.movies.length;
+    final maxItems = 5;
+    final items = widget.result.movies.take(maxItems).toList();
 
     return Column(
       children: [
         SizedBox(
           height: MediaQuery.of(context).size.height * 0.5,
           child: PageView.builder(
-            physics: const ClampingScrollPhysics(),
             controller: _pageController,
-            itemCount: totalItems > maxItems ? maxItems : totalItems,
-            itemBuilder: (context, index) {
-              final imgUrl = widget.result.movies[index].posterPath;
-              return CustomCardThumbnail(
-                imageAsset: imgUrl,
-              );
-            },
-            onPageChanged: (int page) {
+            itemCount: items.length,
+            onPageChanged: (index) {
               setState(() {
-                currentPage = page;
+                _currentIndex = index;
               });
+            },
+            itemBuilder: (context, index) {
+              final movie = items[index];
+              final imgUrl = movie.posterPath;
+              return AnimatedBuilder(
+                animation: _pageController,
+                builder: (context, child) {
+                  double value = 1.0;
+                  if (_pageController.position.haveDimensions) {
+                    value = _pageController.page! - index;
+                    value = (1 - (value.abs() * 0.3)).clamp(0.0, 1.0);
+                  }
+                  return Center(
+                    child: SizedBox(
+                      height: Curves.easeOut.transform(value) *
+                          MediaQuery.of(context).size.height *
+                          0.5,
+                      child: child,
+                    ),
+                  );
+                },
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MovieDetailPage(movieId: movie.id),
+                      ),
+                    );
+                  },
+                  child: CustomCardThumbnail(
+                    imageAsset: imgUrl,
+                  ),
+                ),
+              );
             },
           ),
         ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: _buildPageIndicators(),
-        ),
+        // Add indicators if needed
       ],
-    );
-  }
-
-  List<Widget> _buildPageIndicators() {
-    final totalItems = widget.result.movies.length;
-    final int to = totalItems > maxItems ? maxItems : totalItems;
-
-    List<Widget> list = [];
-    for (int i = 0; i < to; i++) {
-      list.add(
-          i == currentPage ? _buildIndicator(true) : _buildIndicator(false));
-    }
-    return list;
-  }
-
-  Widget _buildIndicator(bool isActive) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
-      margin: const EdgeInsets.symmetric(horizontal: 5.0),
-      height: 8.0,
-      width: 8.0,
-      decoration: BoxDecoration(
-        color: isActive ? Colors.white : Colors.white24,
-        borderRadius: BorderRadius.circular(20),
-      ),
     );
   }
 }

@@ -2,8 +2,10 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:movie_app/common/utils.dart';
+import 'package:movie_app/models/movie_credits_model.dart';
 import 'package:movie_app/models/movie_detail_model.dart';
 import 'package:movie_app/models/movie_model.dart';
+import 'package:movie_app/models/movie_trailer_model.dart';
 
 const baseUrl = 'https://api.themoviedb.org/3/';
 const key = '?api_key=$apiKey';
@@ -87,5 +89,27 @@ class ApiServices {
       return Result.fromJson(jsonDecode(response.body));
     }
     throw Exception('failed to load now playing movies');
+  }
+
+  Future<Credits> getMovieCredits(int movieId) async {
+    final endPoint = 'movie/$movieId/credits';
+    final url = '$baseUrl$endPoint$key';
+
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      return Credits.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to load movie credits');
+  }
+
+   Future<VideoResult> getMovieVideos(int movieId) async {
+    final endPoint = 'movie/$movieId/videos';
+    final url = '$baseUrl$endPoint$key';
+
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      return VideoResult.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to load movie videos');
   }
 }
